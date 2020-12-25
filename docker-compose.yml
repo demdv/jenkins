@@ -1,0 +1,13 @@
+version: '3'
+services:
+ nginx: 
+  container_name: simple_nginx
+  build:
+    dockerfile: Dockerfile
+    context: ./
+  ports:
+    - "80:80"
+  networks:
+    - net
+networks:
+ net:
