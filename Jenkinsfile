@@ -1,15 +1,15 @@
 pipeline {
     agent any
-    stage('scm') {
-        checkout([$class: 'GitSCM',
-          branches:[[name: '** /main']],
-          doGenerateSubmoduleConfigurations: false,
-          extensions:[],
-          submoduleCfg:[],
-          url: 'https://github.com/demdv/jenkins.git'])
-    }
+
 
     stages {
+     stage('scm') {
+         steps{
+         checkout([$class: 'GitSCM',
+          branches:[[name: '** /main']],
+          url: 'https://github.com/demdv/jenkins.git'])
+         }
+    }
         stage('Build') {
             steps {
                
