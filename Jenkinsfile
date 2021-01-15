@@ -5,9 +5,8 @@ pipeline {
     stages {
      stage('scm') {
          steps{
-         checkout([$class: 'GitSCM',
-          branches:[[name: '** /main']],
-          url: 'https://github.com/demdv/jenkins.git'])
+         git branch: 'main',
+         url: 'https://github.com/demdv/jenkins.git'])
          }
     }
         stage('Build') {
