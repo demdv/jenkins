@@ -6,7 +6,7 @@ pipeline {
      stage('scm') {
          steps{
          git branch: 'main',
-         url: 'https://github.com/demdv/jenkins.git'])
+         url: 'https://github.com/demdv/jenkins.git'
          }
     }
         stage('Build') {
