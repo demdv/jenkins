@@ -6,7 +6,7 @@ pipeline {
           doGenerateSubmoduleConfigurations: false,
           extensions:[],
           submoduleCfg:[],
-          url: 'https://github.com/demdv/jenkins.git']]])
+          url: 'https://github.com/demdv/jenkins.git'])
     }
 
     stages {
