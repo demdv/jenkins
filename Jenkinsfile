@@ -12,12 +12,12 @@ pipeline {
                withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
                    sh '$(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)'
                }
-               sh '              
+               sh '''              
                docker build -t nginxtest -f Dockerfile .              
                docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
                docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
                docker rmi -f $(docker images -q)
-               ' 
+               ''' 
             }
 
         }
