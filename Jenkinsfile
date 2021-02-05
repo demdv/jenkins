@@ -1,5 +1,6 @@
 pipeline {
-    agent any
+
+    agent ec2-fleet {
 
 
     stages {
@@ -11,8 +12,7 @@ pipeline {
     }
         stage('Build') {
             steps {
-               
-
+               withAws(credentials: 'JenkinsEcr') {
                sh '''              
                docker build -t nginxtest -f Dockerfile .
                $(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email )
@@ -20,7 +20,8 @@ pipeline {
                docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
                docker rmi -f $(docker images -q)
                '''
-            }
+                }
+
         }
         stage('Test') {
             steps {
@@ -38,3 +39,5 @@ pipeline {
 
 
  
+    }
+}
