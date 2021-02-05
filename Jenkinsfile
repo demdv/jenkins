@@ -1,6 +1,6 @@
 pipeline {
 
-    agent ec2-fleet {
+    agent ec2-fleet 
 
 
     stages {
@@ -39,5 +39,5 @@ pipeline {
 
 
  
-    }
+    
 }
