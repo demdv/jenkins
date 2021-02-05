@@ -6,7 +6,7 @@ pipeline {
          git branch: 'main',
          url: 'https://github.com/demdv/jenkins.git'
          }
-    }
+      }
         stage('Build') {
             steps {
                withAws(credentials: 'JenkinsEcr') {
@@ -18,6 +18,7 @@ pipeline {
                docker rmi -f $(docker images -q)
                '''
                 }
+            }
 
         }
         stage('Test') {
@@ -30,12 +31,6 @@ pipeline {
                 echo 'Deploying....'
             }
         }
-    }
-}
     
-
-
-
- 
-    
+    } 
 }
