@@ -9,15 +9,15 @@ pipeline {
       }
         stage('Build') {
             steps {
-               withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
-                   sh '$(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)'
-               }
+               withAWS(credentials:'AKIAR5G5L7SOGLN5J7GN',region:'us-west-2') {
                sh '''              
-               docker build -t nginxtest -f Dockerfile .              
+               docker build -t nginxtest -f Dockerfile .   
+               $(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)           
                docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
                docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
                docker rmi -f $(docker images -q)
                ''' 
+               }
             }
 
         }
