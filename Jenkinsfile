@@ -10,7 +10,8 @@ pipeline {
         stage('Build') {
             steps {
                withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
-               sh '''              
+               sh '''
+               whoami              
                docker build -t nginxtest -f Dockerfile .   
                $(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)           
                docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
