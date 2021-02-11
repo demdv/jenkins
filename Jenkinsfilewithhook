@@ -34,8 +34,7 @@ pipeline {
          git branch: 'main',
          url: 'https://github.com/demdv/jenkins.git'
          }
-      }
-      
+     }
         stage('Build') {
             steps {
                withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
