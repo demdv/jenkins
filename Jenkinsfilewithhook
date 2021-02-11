@@ -36,6 +36,7 @@ pipeline {
          }
      }
      
+
         stage('Build') {
             steps {
                withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
