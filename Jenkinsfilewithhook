@@ -1,67 +1,73 @@
-pipeline {
-    
-
-    properties([
+node {
+ properties([
   pipelineTriggers([
    [$class: 'GenericTrigger',
     genericVariables: [
-     [ key: 'committer_name', value: '$.actor.displayName' ],
-     [ key: 'committer_email', value: '$.actor.emailAddress' ],
-     [ key: 'ref', value: '$.changes[0].refId'],
-     [ key: 'tag', value: '$.changes[0].refId', regexpFilter: 'refs/tags/'],
-     [ key: 'commit', value: '$.changes[0].toHash' ],
-     [ key: 'repo_slug', value: '$.repository.slug' ],
-     [ key: 'project_key', value: '$.repository.project.key' ],
-     [ key: 'clone_url', value: '$.repository.links.clone[0].href' ]
+     [ key: 'committer_name', value: '$.pusher.name' ],
+     [ key: 'committer_email', value: '$.commits.committer.email' ],
+     [ key: 'commit', value: '$.commits.message' ],
+     [ key: 'clone_url', value: '$.html_url' ]
     ],
      
-    causeString: '$committer_name pushed tag $tag to $clone_url referencing $commit',
+    causeString: '$committer_name pushed to $clone_url referencing $commit',
     
     token: 'abc123',
     
     printContributedVariables: true,
     printPostContent: true,
     
-    regexpFilterText: '$ref',
-    regexpFilterExpression: '^refs/tags/.*'
+
    ]
   ])
  ])
- agent any
-    stages {
-     stage('scm') {
-         steps{
-         git branch: 'main',
-         url: 'https://github.com/demdv/jenkins.git'
-         }
-     }
-     
 
-        stage('Build') {
-            steps {
-               withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
-               sh '''
-               docker build -t nginxtest -f Dockerfile .   
-               $(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)           
-               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
-               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
-               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
-               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
-               docker rmi -f $(docker images -q)
-               ''' 
-               }
-            }
+ stage("Prepare") {
+  deleteDir()
+  sh '''
+  echo git clone $clone_url
+  echo git checkout $commit
+  sleep 1
+  '''
+ }
 
-        }
-        stage('Test') {
-            steps {
-                echo 'Testing..'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying....'
-            }
-        }
-    } 
+
+ stage("Upload") {
+  sh '''
+  echo Uploading...
+  sleep 1
+  '''
+ }
+
+ stage("Email") {
+   def subject = ""
+   def bodyText = ""
+   if (currentBuild.currentResult == 'SUCCESS') {
+   subject = "Released $tag in $repo_slug"
+   bodyText = """
+    Hi there!!
+    
+    You pushed $tag in $clone_url and it is now released.
+    Version $tag was built from $commit
+    
+    See job here: $BUILD_URL
+    See log here: $BUILD_URL/consoleText
+    """
+   } else {
+   subject = "Failed to release $tag in $repo_slug"
+   bodyText = """
+    Hi there!!
+    
+    You pushed $tag in $clone_url and the release failed (${currentBuild.currentResult}).
+    
+    See job here: $BUILD_URL
+    See log here: $BUILD_URL/consoleText
+    """
+   }
+   echo "Sending email with subject '$subject' and content:\n$bodyText"
+   //emailext subject: subject
+   // to: "$committer_email",
+   // from: 'jenkins@company.com',
+   // body: bodyText
+ }
+
 }
