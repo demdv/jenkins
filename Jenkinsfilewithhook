@@ -6,10 +6,10 @@ node {
      [ key: 'committer_name', value: '$.pusher.name' ],
      [ key: 'committer_email', value: '$.commits.committer.email' ],
      [ key: 'commit', value: '$.commits.message' ],
-     [ key: 'clone_url', value: '$.html_url' ]
+     [ key: 'clone_url', value: '$.repository.url' ]
     ],
      
-    causeString: '$committer_name pushed to $clone_url referencing $commit',
+    causeString: '$committer_name pushed to $clone_url commit - $commit',
     
     token: 'abc123',
     
@@ -24,9 +24,7 @@ node {
  stage("Prepare") {
   deleteDir()
   sh '''
-  echo git clone $clone_url
-  echo git checkout $commit
-  sleep 1
+
   '''
  }
 
