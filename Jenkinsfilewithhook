@@ -1,3 +1,65 @@
+properties([
+  pipelineTriggers([
+   [$class: 'GenericTrigger',
+    genericVariables: [
+             [ key: 'committer_name', value: '$.pusher.name' ],
+             [ key: 'committer_email', value: '$.commits.committer.email' ],
+             [ key: 'commit', value: '$.commits.message' ],
+             [ key: 'clone_url', value: '$.repository.url' ]
+    ],
+     
+causeString: '$committer_name pushed to $clone_url commit - $commit',
+    
+    token: 'abc123',
+    
+    printContributedVariables: true,
+    printPostContent: true,
+    
+   ]
+  ])
+ ])
+pipeline {
+    agent any 
+    stages {
+        stage('Build') { 
+            steps {
+                echo 'Build'
+            }
+        }
+        stage('Test') { 
+            steps {
+                echo 'Test'
+            }
+        }
+        stage('Deploy') { 
+            steps {
+                echo 'Deploy' 
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     properties([
      pipelineTriggers([
        triggers {
