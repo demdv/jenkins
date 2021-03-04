@@ -69,7 +69,7 @@ pipeline {
                                 ],
                             ],
                        userRemoteConfigs: [[
-                         credentialsId: "${GITACC}",
+                         credentialsId: "GITACC",
                             url: "https://github.com/${ACCOUNT}/${REPO}.git"]]
 
      
@@ -83,6 +83,8 @@ pipeline {
       stage('build') {
           steps {
               gitPost ("Build", "STARTED #$BUILD_NUMBER", "PENDING")
+
+
               script{
                  sh  '''
                  docker build -t nginxtest -f Dockerfile .
@@ -93,10 +95,12 @@ pipeline {
               
          post {
                 success {
-                    gitPost ("Build", "SUCCESS #$BUILD_NUMBER", "SUCCESS")
+                  gitPost ("Build", "SUCCESS #$BUILD_NUMBER", "SUCCESS")
+
                 }
                 failure {
-                    gitPost ("Build", "FAILED #$BUILD_NUMBER", "FAILURE")
+                   gitPost ("Build", "FAILED #$BUILD_NUMBER", "FAILURE")
+
                 }
             } 
       }
@@ -106,9 +110,9 @@ pipeline {
              gitPost ("test", "STARTED #$BUILD_NUMBER", "PENDING") 
               script{
                 sh '''
-                 docker-compose -d up
-                  curl -I localhost | head -n 1 | cut -d$' ' -f2 
-                  '''
+                 docker run -d -p 80:80 nginxtest
+                 
+                  '''               
            
               }
           }
@@ -122,16 +126,27 @@ pipeline {
                 }
             } // post
       }
+      stage ('testCurl'){
+          steps {
+              script{
+                  CurlTest = sh(script:./testcurl.sh)
+              }
+          }
+      }
 
     }
 }
+
+
+
 def gitPost (CONTEXT, DESCRIPTION, STATUS) {
     script { 
 
- githubNotify context: "Jenkins/${CONTEXT}", description: "${DESCRIPTION}", status: "${STATUS}", credentialsId: "${token}", account: "${ACCOUNT}", repo: "${REPO}", sha: "${sha}", targetUrl: "${BUILD_URL}"
+ githubNotify context: "Jenkins/${CONTEXT}", description: "${DESCRIPTION}", status: "${STATUS}", credentialsId: "GITHUBTOKEN", account: "${ACCOUNT}", repo: "${REPO}", sha: "${sha}", targetUrl: "${BUILD_URL}"
         
     }
 }
 
 
 
+//GITHUBTOKEN - jenkins credential with git user and token
