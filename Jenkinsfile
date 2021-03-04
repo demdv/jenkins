@@ -1,4 +1,7 @@
+properties([
+  pipelineTriggers([
 pipeline {
+    
     agent { label 'ec2-fleet' } 
     stages {
      stage('scm') {
