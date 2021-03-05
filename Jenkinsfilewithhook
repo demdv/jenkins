@@ -132,12 +132,7 @@ pipeline {
       stage ('testCurl'){
           steps {
               script{
-                  CurlTest = sh(script: 'testcurl.sh', returnStatus: true)
-                  if ( CurlTest == 0)
-                  {
-
-                     currentStage.result =  'SUCCESS' 
-                  }
+                  CurlTest = sh(script: './testcurl.sh', returnStatus: true)
               }
           }
            post {
