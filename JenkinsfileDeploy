@@ -1,0 +1,18 @@
+pipeline {
+    agent any 
+    parameters {
+    string(name: 'Number', defaultValue: 'Latest', description: 'Number of build')
+  }
+    stages {
+        stage('Build') { 
+            steps {
+                script{
+                sh '''
+                echo $Number
+                '''
+                }
+            }
+        }
+
+    }
+}

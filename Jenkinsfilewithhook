@@ -1,3 +1,4 @@
+def CurlTest = ' '
 properties([
   pipelineTriggers([
    [$class: 'GenericTrigger',
@@ -5,91 +6,178 @@ properties([
              [ key: 'committer_name', value: '$.pusher.name' ],
              [ key: 'committer_email', value: '$.commits.committer.email' ],
              [ key: 'commit', value: '$.commits.message' ],
-             [ key: 'clone_url', value: '$.repository.url' ]
+             [ key: 'clone_url', value: '$.repository.url' ],
+             [ key: 'action', value: '$.action' ],
+             [ key: 'sha', value: '$.pull_request.head.sha' ],
+             [ key: 'refhead', value: '$.pull_request.head.ref' ],
+             [ key: 'refbase', value: '$.pull_request.base.ref' ],
+             [ key: 'merged', value: '$.pull_request.merged' ],
+             [ key: 'ACCOUNT', value: '$.pull_request.user.login' ],
+             [ key: 'REPO', value: '$.pull_request.head.repo.name' ],
+
     ],
-     
-causeString: '$committer_name pushed to $clone_url commit - $commit',
-    
     token: 'abc123',
-    
-    printContributedVariables: true,
-    printPostContent: true,
-    
+                causeString: '##### Triggered on ${refhead} commit ${sha} #####',
+      regexpFilterText: '$action $merged',
+      regexpFilterExpression: '^opened false$|^reopened false$|^synchronize false$|^closed true$',
+      printContributedVariables: true,
+      printPostContent: true,
    ]
   ])
  ])
 pipeline {
     agent any 
     stages {
-        stage('Build') { 
-            steps {
-                echo 'Build'
-            }
+      stage('clone rep')
+      {
+        steps {
+          script {
+             if ( merged != "true" ) {
+              checkout([$class: 'GitSCM',
+              branches: [[name: '$refhead']],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [
+                [$class: 'PreBuildMerge',
+                  options: [
+                  mergeRemote: 'origin',
+                  mergeStrategy: 'RECURSIVE',
+                  mergeTarget: "$refbase"
+                           ]
+                         ],
+                    ], 
+                     userRemoteConfigs: [[url: 'https://github.com/${ACCOUNT}/${REPO}.git', credentialsId: 'GITACC']]
+                        ])
+                    } // if merged != "true"
+                     if ( merged == "true" ) {
+                        checkout([$class: 'GitSCM',
+                            branches: [[name: '$refbase']],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [
+                                [$class: 'SubmoduleOption',
+                                    disableSubmodules: false,
+                                    parentCredentials: true,
+                                    recursiveSubmodules: true,
+                                    reference: '',
+                                    trackingSubmodules: false
+                                ],
+                            ],
+                       userRemoteConfigs: [[
+                         credentialsId: "GITACC",
+                            url: "https://github.com/${ACCOUNT}/${REPO}.git"]]
+                        ])
+                        echo "merged is true"
+                    } // if merged == "true"
+          }
         }
-        stage('Test') { 
-            steps {
-                echo 'Test'
+      }
+      stage('build') {
+          steps {
+
+              gitPost ("Build", "STARTED #$BUILD_NUMBER", "PENDING")
+              script{
+                 
+                 sh  '''
+                 docker build -t nginxtest -f Dockerfile .
+                 '''
+                  
+                 }
+              }  
+         post {
+                success {
+                  gitPost ("Build", "SUCCESS #$BUILD_NUMBER", "SUCCESS")
+                }
+                failure {
+                   gitPost ("Build", "FAILED #$BUILD_NUMBER", "FAILURE")
+                }
             }
-        }
-        stage('Deploy') { 
-            steps {
-                echo 'Deploy' 
-            }
+           
+      }
+      stage ('test'){
+          steps{
+
+             gitPost ("test", "STARTED #$BUILD_NUMBER", "PENDING") 
+              script{
+                sh '''
+                 docker run -d -p 80:80 nginxtest
+                  '''               
+              }
+          }
+      post {
+                success {
+                    gitPost ("test", "SUCCESS #$BUILD_NUMBER", "SUCCESS")
+                }
+                failure {
+                    gitPost ("test", "FAILED #$BUILD_NUMBER", "FAILURE")
+                }
+            } // post
+      }
+      stage ('testCurl'){
+          steps {
+              script{
+                  CurlTest = sh(script: './testcurl.sh', returnStatus: true)
+              }
+          }
+           post {
+                success {
+                    gitPost ("testCurl", "SUCCESS #$BUILD_NUMBER", "SUCCESS")
+                }
+                failure {
+                    gitPost ("testCurl", "FAILED #$BUILD_NUMBER", "FAILURE")
+                }
+            } // post
+      }
+      stage ('dockerstop'){
+          steps {
+              script {
+                CurlTest = sh(script: './dockerstop.sh', returnStatus: true)
+                  
+              }
+          }
+      }
+      stage ('Push'){
+          steps {
+              script {
+                  if ( merged == "true" ) {
+             withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
+               sh '''  
+               $(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)           
+               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
+               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
+               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
+               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
+               '''
+                  }
+              }
+          }
+      }
+      }
+      stage ('deploy'){
+          steps {
+              script {
+                  if ( merged == "true" ) {
+              build job: 'deploypipeline', parameters: [[$class: 'StringParameterValue', name: 'Number', value: 'latest']]
+                  }
+              }
+          }
+      
+      }
+
+    }
+ }
+    
+
+
+
+
+
+def gitPost (CONTEXT, DESCRIPTION, STATUS) {
+    script { 
+        if ( merged != "true" ) {
+
+ githubNotify context: "Jenkins/${CONTEXT}", description: "${DESCRIPTION}", status: "${STATUS}", credentialsId: "GITHUBTOKEN", account: "${ACCOUNT}", repo: "${REPO}", sha: "${sha}", targetUrl: "${BUILD_URL}"
         }
     }
-}
+}//GITHUBTOKEN - jenkins credential with git user and token
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    properties([
-     pipelineTriggers([
-       triggers {
-        GenericTrigger(
-            genericVariables: [
-             [ key: 'committer_name', value: '$.pusher.name' ],
-             [ key: 'committer_email', value: '$.commits.committer.email' ],
-             [ key: 'commit', value: '$.commits.message' ],
-             [ key: 'clone_url', value: '$.repository.url' ]
-            ],
-
-     
-    causeString: '$committer_name pushed to $clone_url commit - $commit',
-    
-    token: 'abc123',
-    
-    printContributedVariables: true,
-    printPostContent: true,
-)
-  }
-     ])
-    ])
-pipeline {
-agent any
- stages {
-           stage('Test') {
-            steps {
-                echo 'Testing..'
-            }
-        }
- }
-}
 
