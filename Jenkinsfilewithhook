@@ -16,25 +16,17 @@ properties([
              [ key: 'REPO', value: '$.pull_request.head.repo.name' ],
 
     ],
-     
- 
-    
     token: 'abc123',
                 causeString: '##### Triggered on ${refhead} commit ${sha} #####',
-
       regexpFilterText: '$action $merged',
       regexpFilterExpression: '^opened false$|^reopened false$|^synchronize false$|^closed true$',
       printContributedVariables: true,
       printPostContent: true,
-    
    ]
   ])
  ])
 pipeline {
     agent any 
-
-
-
     stages {
       stage('clone rep')
       {
@@ -52,11 +44,9 @@ pipeline {
                   mergeTarget: "$refbase"
                            ]
                          ],
-
                     ], 
                      userRemoteConfigs: [[url: 'https://github.com/${ACCOUNT}/${REPO}.git', credentialsId: 'GITACC']]
                         ])
-                    
                     } // if merged != "true"
                      if ( merged == "true" ) {
                         checkout([$class: 'GitSCM',
@@ -74,52 +64,44 @@ pipeline {
                        userRemoteConfigs: [[
                          credentialsId: "GITACC",
                             url: "https://github.com/${ACCOUNT}/${REPO}.git"]]
-
-     
                         ])
                         echo "merged is true"
                     } // if merged == "true"
           }
         }
       }
-
       stage('build') {
           steps {
+
               gitPost ("Build", "STARTED #$BUILD_NUMBER", "PENDING")
-
-
               script{
+                 
                  sh  '''
                  docker build -t nginxtest -f Dockerfile .
                  '''
-
+                  
                  }
-              }
-              
+              }  
          post {
                 success {
                   gitPost ("Build", "SUCCESS #$BUILD_NUMBER", "SUCCESS")
-
                 }
                 failure {
                    gitPost ("Build", "FAILED #$BUILD_NUMBER", "FAILURE")
-
                 }
-            } 
+            }
+           
       }
-
       stage ('test'){
           steps{
+
              gitPost ("test", "STARTED #$BUILD_NUMBER", "PENDING") 
               script{
                 sh '''
                  docker run -d -p 80:80 nginxtest
-                 
                   '''               
-           
               }
           }
-      
       post {
                 success {
                     gitPost ("test", "SUCCESS #$BUILD_NUMBER", "SUCCESS")
@@ -144,20 +126,58 @@ pipeline {
                 }
             } // post
       }
+      stage ('dockerstop'){
+          steps {
+              script {
+                CurlTest = sh(script: './dockerstop.sh', returnStatus: true)
+                  
+              }
+          }
+      }
+      stage ('Push'){
+          steps {
+              script {
+                  if ( merged == "true" ) {
+             withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
+               sh '''  
+               $(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)           
+               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
+               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
+               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
+               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
+               '''
+                  }
+              }
+          }
+      }
+      }
+      stage ('deploy'){
+          steps {
+              script {
+                  if ( merged == "true" ) {
+              build job: 'deploypipeline', parameters: [[$class: 'StringParameterValue', name: 'Number', value: 'latest']]
+                  }
+              }
+          }
+      
+      }
 
     }
-}
+ }
+    
+
+
 
 
 
 def gitPost (CONTEXT, DESCRIPTION, STATUS) {
     script { 
+        if ( merged != "true" ) {
 
  githubNotify context: "Jenkins/${CONTEXT}", description: "${DESCRIPTION}", status: "${STATUS}", credentialsId: "GITHUBTOKEN", account: "${ACCOUNT}", repo: "${REPO}", sha: "${sha}", targetUrl: "${BUILD_URL}"
-        
+        }
     }
-}
+}//GITHUBTOKEN - jenkins credential with git user and token
 
 
 
-//GITHUBTOKEN - jenkins credential with git user and token
