@@ -4,13 +4,21 @@ pipeline {
     string(name: 'Number', defaultValue: 'Latest', description: 'Number of build')
   }
     stages {
+         stage('scm') {
+         steps{
+         git branch: 'main',
+         url: 'https://github.com/demdv/helmk8s.git'
+         }
+      }
         stage('Build') { 
             steps {
                 script{
+                    withAWS(credentials:'JenkinsServiceUser',region:'us-west-2') {
                 sh '''
-                echo $Number
+                helm upgrade demonginx demonginx/ --set biuldNumber=$BUILD_NUMBER
                 '''
                 }
+            }
             }
         }
 
