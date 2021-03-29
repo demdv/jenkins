@@ -155,7 +155,7 @@ pipeline {
           steps {
               script {
                   if ( merged == "true" ) {
-              build job: 'deploypipeline', parameters: [[$class: 'StringParameterValue', name: 'Number', value: 'latest']]
+              build job: 'deploypipeline', parameters: [[$class: 'StringParameterValue', name: 'Number', value: '$BUILD_NUMBER']]
                   }
               }
           }
