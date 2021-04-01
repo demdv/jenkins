@@ -15,7 +15,8 @@ pipeline {
                 script{
                     withAWS(credentials:'JenkinsServiceUser',region:'us-west-2') {
                 sh '''
-                helm upgrade demonginx demonginx/ --set biuldNumber=$BUILD_NUMBER
+                aws eks --region us-west-2 update-kubeconfig --name terraform-eks-demo
+                helm upgrade -i demonginx demonginx/ --set biuldNumber=Number
                 '''
                 }
             }

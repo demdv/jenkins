@@ -77,6 +77,7 @@ pipeline {
               script{
                  
                  sh  '''
+                 sed -i "s/{{BUILD_NUMBER}}/$BUILD_NUMBER/g" ./index.html
                  docker build -t nginxtest -f Dockerfile .
                  '''
                   
@@ -98,6 +99,7 @@ pipeline {
              gitPost ("test", "STARTED #$BUILD_NUMBER", "PENDING") 
               script{
                 sh '''
+                
                  docker run -d -p 80:80 nginxtest
                   '''               
               }
@@ -129,7 +131,9 @@ pipeline {
       stage ('dockerstop'){
           steps {
               script {
-                CurlTest = sh(script: './dockerstop.sh', returnStatus: true)
+                sh '''
+                ./dockerstop.sh
+                '''
                   
               }
           }
