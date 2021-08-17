@@ -77,6 +77,7 @@ pipeline {
               script{
                  
                  sh  '''
+                 sed -i "s/{{BUILD_NUMBER}}/$BUILD_NUMBER/g" ./index.html
                  docker build -t nginxtest -f Dockerfile .
                  '''
                   
@@ -98,6 +99,7 @@ pipeline {
              gitPost ("test", "STARTED #$BUILD_NUMBER", "PENDING") 
               script{
                 sh '''
+                
                  docker run -d -p 80:80 nginxtest
                   '''               
               }
@@ -129,7 +131,9 @@ pipeline {
       stage ('dockerstop'){
           steps {
               script {
-                CurlTest = sh(script: './dockerstop.sh', returnStatus: true)
+                sh '''
+                ./dockerstop.sh
+                '''
                   
               }
           }
@@ -140,11 +144,11 @@ pipeline {
                   if ( merged == "true" ) {
              withAWS(credentials:'JenkinsEcr',region:'us-west-2') {
                sh '''  
-               $(aws ecr get-login --region us-west-2 --registry-ids 131460758684 --no-include-email)           
-               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
-               docker tag nginxtest 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
-               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
-               docker push 131460758684.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
+               $(aws ecr get-login --region us-west-2 --registry-ids 482720962971 --no-include-email)           
+               docker tag nginxtest 482720962971.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
+               docker tag nginxtest 482720962971.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
+               docker push 482720962971.dkr.ecr.us-west-2.amazonaws.com/nginxtest:latest
+               docker push 482720962971.dkr.ecr.us-west-2.amazonaws.com/nginxtest:$BUILD_NUMBER
                '''
                   }
               }
@@ -155,7 +159,7 @@ pipeline {
           steps {
               script {
                   if ( merged == "true" ) {
-              build job: 'deploypipeline', parameters: [[$class: 'StringParameterValue', name: 'Number', value: 'latest']]
+              build job: 'deploypipeline', parameters: [[$class: 'StringParameterValue', name: 'Number', value: '$BUILD_NUMBER']]
                   }
               }
           }

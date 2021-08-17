@@ -1,16 +1,27 @@
 pipeline {
     agent any 
     parameters {
-    string(name: 'Number', defaultValue: 'Latest', description: 'Number of build')
+    string (name: 'Number', defaultValue: 'Latest', description: 'Number of build')
+    choice (name: 'Namespace', choices: ['devnginx', 'demonginx'], description: 'Namespace for deploy')
   }
     stages {
+         stage('scm') {
+         steps{
+         git branch: 'main',
+         url: 'https://github.com/demdv/helmk8s.git'
+         }
+      }
         stage('Build') { 
             steps {
                 script{
+                    withAWS(credentials:'JenkinsServiceUser',region:'us-west-2') {
                 sh '''
-                echo $Number
+                aws eks --region us-west-2 update-kubeconfig --name terraform-eks-demo
+                kubectl apply -f config-map.yaml
+                helm upgrade -i $Namespace $Namespace/ --set biuldNumber=$Number
                 '''
                 }
+            }
             }
         }
 
