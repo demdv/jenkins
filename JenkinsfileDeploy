@@ -8,7 +8,7 @@ pipeline {
          stage('scm') {
          steps{
          git branch: 'main',
-         url: 'https://github.com/demdv/helmk8s.git'
+         url: 'https://github.com/demdv/k8sistio.git'
          }
       }
         stage('Build') { 
@@ -16,9 +16,9 @@ pipeline {
                 script{
                     withAWS(credentials:'JenkinsServiceUser',region:'us-west-2') {
                 sh '''
-                aws eks --region us-west-2 update-kubeconfig --name terraform-eks-demo
+                aws eks --region us-west-2 update-kubeconfig --name eks-cluster
                 kubectl apply -f config-map.yaml
-                helm upgrade -i $Namespace $Namespace/ --set biuldNumber=$Number
+                helm upgrade -i demonginx demonginx/  -n demonginx --set biuldNumber=latest
                 '''
                 }
             }
